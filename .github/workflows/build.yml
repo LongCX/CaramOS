@@ -3,14 +3,19 @@ name: Build CaramOS ISO
 on:
   push:
     branches: [main, develop]
+    tags:
+      - 'v*'
   pull_request:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
-    name: Build ISO (dev)
-    runs-on: ubuntu-latest
+    name: Build ISO (${{ startsWith(github.ref, 'refs/tags/v') && 'release' || 'dev' }})
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
@@ -18,13 +23,15 @@ jobs:
 
       - name: Free disk space
         run: |
-          # GitHub runner có ~14GB free, cần ~15GB
+          # GitHub runner có dung lượng giới hạn; ISO remaster cần nhiều disk.
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
           sudo apt-get clean
           df -h /
 
       - name: Install build tools
-        run: sudo apt-get update && sudo apt-get install -y squashfs-tools xorriso rsync wget isolinux
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y squashfs-tools xorriso rsync wget isolinux syslinux-utils
 
       - name: Cache Mint ISO
         uses: actions/cache@v4
@@ -33,11 +40,32 @@ jobs:
           key: mint-iso-22.3-cinnamon
 
       - name: Build CaramOS ISO
-        run: sudo -E ./build.sh
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "Building release from tag ${GITHUB_REF_NAME}"
+            sudo -E ./build.sh --release
+          else
+            echo "Building dev ISO"
+            sudo -E ./build.sh
+          fi
 
-      - name: Upload ISO
+      - name: Generate checksums
+        run: sha256sum CaramOS-*.iso > SHA256SUMS
+
+      - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
           name: CaramOS-ISO
-          path: CaramOS-*.iso
+          path: |
+            CaramOS-*.iso
+            SHA256SUMS
           retention-days: 7
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            CaramOS-*.iso
+            SHA256SUMS
+          generate_release_notes: true

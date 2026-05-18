@@ -451,7 +451,7 @@ StScrollBar {
     background-gradient-end: rgba(0, 255, 0, 0.2); }
 
 .panel-top, .panel-bottom, .panel-left, .panel-right {
-  color: #ffffff;
+  color: #303030;
   border: none;
   background-color: rgba(232, 232, 232, 0.99);
   font-size: 1em;
@@ -485,12 +485,13 @@ StScrollBar {
   -natural-hpadding: 6px;
   -minimum-hpadding: 2px;
   font-weight: bold;
-  color: green;
+  color: #303030;
   transition-duration: 100; }
 
 .system-status-icon {
-  icon-size: 16px;
-  padding: 0 1px; }
+  icon-size: 18px;
+  color: #303030;
+  padding: 0 2px; }
   .system-status-icon.warning {
     color: #F27835; }
   .system-status-icon.error {

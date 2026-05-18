@@ -2,8 +2,8 @@
 # Applied to all users. Users can still override from Settings.
 
 [x.dm.slick-greeter]
-theme-name='CaramOS-Light'
-icon-theme-name='Tela-circle'
+theme-name='Cinnamon-Delight'
+icon-theme-name='Tela-circle-light'
 font-name='Be Vietnam Pro 11'
 background='/usr/share/backgrounds/caramos/default.png'
 draw-user-backgrounds=false
@@ -13,17 +13,22 @@ cursor-theme-size=24
 [org.cinnamon]
 panel-scale-text-icons=true
 workspace-expo-view-as-grid=true
-app-menu-icon-name='caramos-logo-symbolic'
-system-icon='caramos-logo-symbolic'
-favorite-apps=['google-chrome.desktop', 'wps-office-wps.desktop', 'wps-office-et.desktop', 'wps-office-wpp.desktop', 'nemo.desktop', 'cinnamon-settings.desktop', 'org.gnome.Terminal.desktop']
+app-menu-icon-name='/usr/share/pixmaps/caramos-logo.png'
+system-icon='/usr/share/pixmaps/caramos-logo.png'
+panels-enabled=['1:0:bottom']
+panels-autohide=['1:false']
+panels-height=['1:32']
+panel-zone-icon-sizes='[{"panelId": 1, "left": 20, "center": 20, "right": 20}]'
+panel-zone-symbolic-icon-sizes='[{"panelId": 1, "left": 20, "center": 20, "right": 20}]'
+favorite-apps=@as []
 
 [org.cinnamon.theme]
-name='CaramOS-Light'
+name='Cinnamon-Delight'
 
 [org.cinnamon.desktop.interface]
 gtk-key-theme='Default'
-gtk-theme='ChromeOS-Light'
-icon-theme='Tela-circle'
+gtk-theme='Cinnamon-Delight'
+icon-theme='Tela-circle-light'
 cursor-theme='Bibata-Modern-Classic'
 font-name='Be Vietnam Pro 10'
 menus-have-icons=true
@@ -31,7 +36,7 @@ clock-show-date=true
 clock-use-24h=true
 
 [org.cinnamon.desktop.wm.preferences]
-theme='ChromeOS-Light'
+theme='Cinnamon-Delight'
 titlebar-font='Be Vietnam Pro Bold 10'
 titlebar-uses-system-font=false
 button-layout=':minimize,maximize,close'
@@ -44,15 +49,15 @@ picture-uri='file:///usr/share/backgrounds/caramos/default.png'
 picture-options='zoom'
 
 [org.gnome.desktop.interface]
-gtk-theme='ChromeOS-Light'
-icon-theme='Tela-circle'
+gtk-theme='Cinnamon-Delight'
+icon-theme='Tela-circle-light'
 cursor-theme='Bibata-Modern-Classic'
 font-name='Be Vietnam Pro 10'
 document-font-name='Be Vietnam Pro 10'
 monospace-font-name='DejaVu Sans Mono 10'
 
 [org.gnome.desktop.wm.preferences]
-theme='ChromeOS-Light'
+theme='Cinnamon-Delight'
 titlebar-font='Be Vietnam Pro Bold 10'
 titlebar-uses-system-font=false
 button-layout=':minimize,maximize,close'
@@ -66,8 +71,8 @@ picture-options='zoom'
 show-desktop-icons=false
 
 [org.mate.interface]
-gtk-theme='ChromeOS-Light'
-icon-theme='Tela-circle'
+gtk-theme='Cinnamon-Delight'
+icon-theme='Tela-circle-light'
 font-name='Be Vietnam Pro 10'
 
 [org.mate.background]
@@ -130,8 +135,3 @@ binding=['<Super><Shift>s']
 name='Flameshot Print'
 command='flameshot gui'
 binding=['Print']
-
-[org.cinnamon.desktop.keybindings.custom-keybinding:/org/cinnamon/desktop/keybindings/custom-keybindings/custom2/]
-name='CopyQ'
-command='copyq menu'
-binding=['<Super>v']

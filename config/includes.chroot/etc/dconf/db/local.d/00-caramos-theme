@@ -1,27 +1,32 @@
 [org/cinnamon]
-app-menu-icon-name='caramos-logo-symbolic'
-system-icon='caramos-logo-symbolic'
+app-menu-icon-name='/usr/share/pixmaps/caramos-logo.png'
+system-icon='/usr/share/pixmaps/caramos-logo.png'
+panels-enabled=['1:0:bottom']
+panels-autohide=['1:false']
+panels-height=['1:32']
+panel-zone-icon-sizes='[{"panelId": 1, "left": 20, "center": 20, "right": 20}]'
+panel-zone-symbolic-icon-sizes='[{"panelId": 1, "left": 20, "center": 20, "right": 20}]'
 
 [org/cinnamon/theme]
-name='CaramOS-Light'
+name='Cinnamon-Delight'
 
 [org/cinnamon/desktop/interface]
-gtk-theme='ChromeOS-Light'
-icon-theme='Tela-circle'
+gtk-theme='Cinnamon-Delight'
+icon-theme='Tela-circle-light'
 cursor-theme='Bibata-Modern-Classic'
 font-name='Be Vietnam Pro 10'
 
 [org/cinnamon/desktop/wm/preferences]
-theme='ChromeOS-Light'
+theme='Cinnamon-Delight'
 
 [org/gnome/desktop/interface]
-gtk-theme='ChromeOS-Light'
-icon-theme='Tela-circle'
+gtk-theme='Cinnamon-Delight'
+icon-theme='Tela-circle-light'
 cursor-theme='Bibata-Modern-Classic'
 font-name='Be Vietnam Pro 10'
 
 [org/gnome/desktop/wm/preferences]
-theme='ChromeOS-Light'
+theme='Cinnamon-Delight'
 
 [org/cinnamon/applets/grouped-window-list]
-pinned-apps=['google-chrome.desktop','wps-office-wps.desktop','wps-office-et.desktop','wps-office-wpp.desktop','nemo.desktop','org.gnome.Terminal.desktop']
+pinned-apps=['google-chrome.desktop','wps-office-prometheus.desktop','cinnamon-settings.desktop']

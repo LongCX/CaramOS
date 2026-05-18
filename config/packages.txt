@@ -3,9 +3,6 @@
 # Chỉ thêm những gì Mint CHƯA CÓ
 
 # Display Manager: Giữ nguyên LightDM + Slick-Greeter mặc định của Mint
-
-# ChromeOS-style Dock
-plank
 #5 @dungdinhmanh
 flameshot
 tlp

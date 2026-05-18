@@ -1,14 +1,14 @@
 [Groups/0]
 Name=Default
 Default Layout=us
-DefaultIM=bamboo
+DefaultIM=lotus
 
 [Groups/0/Items/0]
-Name=keyboard-us
+Name=lotus
 Layout=
 
 [Groups/0/Items/1]
-Name=bamboo
+Name=keyboard-us
 Layout=
 
 [GroupOrder]

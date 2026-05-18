@@ -10,7 +10,10 @@ if [ "$GITHUB_ACTIONS" = "true" ]; then
 else
     MINT_MIRROR="https://mirror.meowsmp.net/linuxmint/iso/stable/${MINT_VERSION}/${MINT_ISO_NAME}"
 fi
-CARAMOS_VERSION="0.1"
+CARAMOS_VERSION="${CARAMOS_VERSION:-0.1}"
+if [ -n "${GITHUB_REF_NAME:-}" ] && [[ "$GITHUB_REF_NAME" == v* ]]; then
+    CARAMOS_VERSION="${GITHUB_REF_NAME#v}"
+fi
 OUTPUT_ISO="CaramOS-${CARAMOS_VERSION}-${MINT_EDITION}-amd64.iso"
 WORK_DIR="./build"
 # Nén mặc định: lz4 (nhanh cho dev). --release sẽ đổi sang xz (nhỏ, nén lâu)

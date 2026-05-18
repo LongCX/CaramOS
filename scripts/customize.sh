@@ -52,14 +52,28 @@ step_customize() {
             hook_name=$(basename "$hook")
             info "  → Chạy hook: $hook_name"
             cp "$hook" "$WORK_DIR/squashfs/tmp/$hook_name"
+            CARAMOS_VERSION="$CARAMOS_VERSION" \
+            MINT_VERSION="$MINT_VERSION" \
+            MINT_EDITION="$MINT_EDITION" \
             chroot "$WORK_DIR/squashfs" /bin/bash "/tmp/$hook_name"
             rm -f "$WORK_DIR/squashfs/tmp/$hook_name"
-            if [ "$hook_name" = "0100-caramos-setup.hook.chroot" ] && [ ! -f "$WORK_DIR/squashfs/etc/caramos-customized" ]; then
-                error "Hook $hook_name không tạo /etc/caramos-customized; dừng để tránh repack rootfs cũ."
-            fi
             ok "Hook $hook_name xong."
         fi
     done
+
+    # Chỉ đánh dấu customized sau khi TOÀN BỘ hook đã chạy xong.
+    # Nếu bị Ctrl+C giữa chừng, marker không được tạo và make quick sẽ buộc
+    # chạy lại customize thay vì repack rootfs thiếu Plymouth/Cinnamenu/dock.
+    chroot "$WORK_DIR/squashfs" /bin/bash -c '
+        set -e
+        test -f /etc/dconf/db/local
+        test -f /etc/xdg/autostart/caramos-theme.desktop
+        test -d /usr/share/cinnamon/applets/Cinnamenu@json
+        find /usr/share/cinnamon/applets/Cinnamenu@json -name settings-schema.json -print -quit | grep -q .
+        test -f /usr/share/plymouth/themes/caramos/caramos.plymouth
+        date -u +"%Y-%m-%dT%H:%M:%SZ" > /etc/caramos-customized
+    '
+    ok "Rootfs đã được customize đầy đủ."
 
     # --- Dọn dẹp chroot ---
     info "[6/7] Dọn dẹp chroot..."

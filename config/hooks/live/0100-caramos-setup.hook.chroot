@@ -4,6 +4,10 @@ set -e
 export DEBIAN_FRONTEND=noninteractive
 APT_LOCK_TIMEOUT="${APT_LOCK_TIMEOUT:-600}"
 APT_GET=(apt-get -o DPkg::Lock::Timeout="${APT_LOCK_TIMEOUT}")
+CARAMOS_VERSION="${CARAMOS_VERSION:-0.1}"
+MINT_EDITION="${MINT_EDITION:-cinnamon}"
+CARAMOS_EDITION="${MINT_EDITION^}"
+CARAMOS_PRETTY_NAME="CaramOS ${CARAMOS_VERSION} ${CARAMOS_EDITION}"
 
 preseed_fonts_eula() {
     echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections || true
@@ -19,11 +23,11 @@ disable_package_data_downloads() {
 
 write_os_release() {
     mkdir -p /usr/lib
-    cat > /tmp/caramos-os-release <<'OSREL'
-PRETTY_NAME="CaramOS 0.1 Cinnamon"
+    cat > /tmp/caramos-os-release <<OSREL
+PRETTY_NAME="${CARAMOS_PRETTY_NAME}"
 NAME="CaramOS"
-VERSION_ID="0.1"
-VERSION="0.1"
+VERSION_ID="${CARAMOS_VERSION}"
+VERSION="${CARAMOS_VERSION}"
 VERSION_CODENAME=caram
 ID=caramos
 ID_LIKE="ubuntu debian linuxmint"
@@ -54,17 +58,9 @@ else
 fi
 
 # --- Themes/assets ---
-echo "[CaramOS] Installing ChromeOS GTK theme..."
-if wget -q -O /tmp/chromeos-theme.zip "https://github.com/vinceliuice/ChromeOS-theme/archive/refs/heads/master.zip"; then
-    unzip -qo /tmp/chromeos-theme.zip -d /tmp/
-    cd /tmp/ChromeOS-theme-master
-    mkdir -p /root/.config/gtk-4.0
-    ./install.sh || true
-    cd /
-    rm -rf /tmp/chromeos-theme.zip /tmp/ChromeOS-theme-master
-fi
+echo "[CaramOS] Using Cinnamon Delight theme from Task 17; ChromeOS theme is intentionally not installed."
 
-echo "[CaramOS] Installing Tela Circle icon theme..."
+echo "[CaramOS] Installing Cinnamon Delight icons..."
 if wget -q -O /tmp/tela-icons.zip "https://github.com/vinceliuice/Tela-circle-icon-theme/archive/refs/heads/master.zip"; then
     unzip -qo /tmp/tela-icons.zip -d /tmp/
     cd /tmp/Tela-circle-icon-theme-master
@@ -109,27 +105,27 @@ printf 'caram\n' > /etc/hostname
 sed -i 's/\bmint\b/caram/gI' /etc/hosts 2>/dev/null || true
 
 write_os_release
-cat > /etc/lsb-release <<'LSB'
+cat > /etc/lsb-release <<LSB
 DISTRIB_ID=CaramOS
-DISTRIB_RELEASE=0.1
+DISTRIB_RELEASE=${CARAMOS_VERSION}
 DISTRIB_CODENAME=caram
-DISTRIB_DESCRIPTION="CaramOS 0.1 Cinnamon"
+DISTRIB_DESCRIPTION="${CARAMOS_PRETTY_NAME}"
 LSB
 mkdir -p /etc/linuxmint
-cat > /etc/linuxmint/info <<'MINTINFO'
-RELEASE=0.1
+cat > /etc/linuxmint/info <<MINTINFO
+RELEASE=${CARAMOS_VERSION}
 CODENAME=caram
-EDITION="Cinnamon"
-DESCRIPTION="CaramOS 0.1 Cinnamon"
+EDITION="${CARAMOS_EDITION}"
+DESCRIPTION="${CARAMOS_PRETTY_NAME}"
 DESKTOP=Gnome
 TOOLKIT=GTK
 NEW_FEATURES_URL=https://caramos.org/
 RELEASE_NOTES_URL=https://caramos.org/
 USER_GUIDE_URL=https://caramos.org/
-GRUB_TITLE=CaramOS 0.1 Cinnamon
+GRUB_TITLE=${CARAMOS_PRETTY_NAME}
 MINTINFO
-printf 'CaramOS 0.1 \\n \\l\n' > /etc/issue
-printf 'CaramOS 0.1\n' > /etc/issue.net
+printf 'CaramOS %s \\n \\l\n' "$CARAMOS_VERSION" > /etc/issue
+printf 'CaramOS %s\n' "$CARAMOS_VERSION" > /etc/issue.net
 find /usr/share/distro-info -type f -name '*.csv' -print0 2>/dev/null | \
     xargs -0 sed -i -e 's/Linux Mint/CaramOS/gI' -e 's/linuxmint/caramos/gI' 2>/dev/null || true
 
@@ -168,10 +164,10 @@ fi
 
 if [ -f /usr/share/glib-2.0/schemas/mint-artwork.gschema.override ]; then
     sed -i \
-        -e "s|Mint-Y-Dark-Aqua|CaramOS-Light|g" \
-        -e "s|Mint-Y-Dark|CaramOS-Light|g" \
-        -e "s|Mint-Y-Aqua|ChromeOS-Light|g" \
-        -e "s|Mint-Y-Sand|Tela-circle|g" \
+        -e "s|Mint-Y-Dark-Aqua|Cinnamon-Delight|g" \
+        -e "s|Mint-Y-Dark|Cinnamon-Delight|g" \
+        -e "s|Mint-Y-Aqua|Cinnamon-Delight|g" \
+        -e "s|Mint-Y-Sand|Tela-circle-light|g" \
         -e "s|/usr/share/backgrounds/linuxmint/default_background.jpg|/usr/share/backgrounds/caramos/default.png|g" \
         -e "s|linuxmint-logo-ring-symbolic|caramos-logo-symbolic|g" \
         /usr/share/glib-2.0/schemas/mint-artwork.gschema.override
@@ -180,15 +176,9 @@ fi
 if [ -f /etc/lightdm/lightdm-gtk-greeter.conf.d/99_linuxmint.conf ]; then
     sed -i \
         -e "s|/usr/share/backgrounds/linuxmint/default_background.jpg|/usr/share/backgrounds/caramos/default.png|g" \
-        -e "s|Mint-Y-Aqua|ChromeOS-Light|g" \
-        -e "s|Mint-Y-Sand|Tela-circle|g" \
+        -e "s|Mint-Y-Aqua|Cinnamon-Delight|g" \
+        -e "s|Mint-Y-Sand|Tela-circle-light|g" \
         /etc/lightdm/lightdm-gtk-greeter.conf.d/99_linuxmint.conf
-fi
-
-if [ -d /usr/share/themes/Mint-Y-Aqua/cinnamon ]; then
-    mkdir -p /usr/share/themes/CaramOS-Light
-    rm -rf /usr/share/themes/CaramOS-Light/cinnamon
-    cp -a /usr/share/themes/Mint-Y-Aqua/cinnamon /usr/share/themes/CaramOS-Light/cinnamon
 fi
 
 mkdir -p /etc/dconf/profile /etc/dconf/db/local.d
@@ -202,31 +192,35 @@ app-menu-icon-name='caramos-logo-symbolic'
 system-icon='caramos-logo-symbolic'
 
 [org/cinnamon/theme]
-name='CaramOS-Light'
+name='Cinnamon-Delight'
 
 [org/cinnamon/desktop/interface]
-gtk-theme='ChromeOS-Light'
-icon-theme='Tela-circle'
+gtk-theme='Cinnamon-Delight'
+icon-theme='Tela-circle-light'
 cursor-theme='Bibata-Modern-Classic'
 font-name='Be Vietnam Pro 10'
 clock-show-date=true
 clock-use-24h=true
 
 [org/cinnamon/desktop/wm/preferences]
-theme='ChromeOS-Light'
+theme='Cinnamon-Delight'
 
 [org/gnome/desktop/interface]
-gtk-theme='ChromeOS-Light'
-icon-theme='Tela-circle'
+gtk-theme='Cinnamon-Delight'
+icon-theme='Tela-circle-light'
 cursor-theme='Bibata-Modern-Classic'
 font-name='Be Vietnam Pro 10'
 
 [org/gnome/desktop/wm/preferences]
-theme='ChromeOS-Light'
+theme='Cinnamon-Delight'
 
 [org/cinnamon/applets/grouped-window-list]
-pinned-apps=['google-chrome.desktop','wps-office-wps.desktop','wps-office-et.desktop','wps-office-wpp.desktop','nemo.desktop','org.gnome.Terminal.desktop']
+pinned-apps=['google-chrome.desktop','wps-office-prometheus.desktop','cinnamon-settings.desktop']
 DCONF
+
+if [ -f /usr/share/applications/nemo.desktop ] && ! grep -q '^StartupWMClass=' /usr/share/applications/nemo.desktop; then
+    printf '\nStartupWMClass=Nemo\n' >> /usr/share/applications/nemo.desktop
+fi
 if command -v dconf >/dev/null 2>&1; then
     dconf update || true
 fi

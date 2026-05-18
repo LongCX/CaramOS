@@ -4,6 +4,11 @@
 clean_virtual_dirs() {
     local SFS="$WORK_DIR/squashfs"
 
+    # Dọn file tạm trước khi pack. Nếu build bị Ctrl+C giữa hook
+    # (đặc biệt WPS repack cũ), /tmp có thể còn .deb/data.tar.xz/opt rất lớn
+    # và make quick sẽ vô tình đóng gói chúng vào ISO.
+    rm -rf "$SFS/tmp"/* "$SFS/var/tmp"/* 2>/dev/null || true
+
     # Đảm bảo các virtual fs dir trống sạch trước khi pack vào squashfs.
     # KHÔNG dùng -e proc/sys/dev/run để loại trừ — nếu loại trừ, các thư mục
     # này sẽ KHÔNG TỒN TẠI trong squashfs, casper sẽ không có chỗ để mount

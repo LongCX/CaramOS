@@ -101,6 +101,12 @@ trap cleanup_on_fail EXIT
 # --- ISO input ---
 resolve_iso "$ISO_ARG"
 
+validate_customized_rootfs() {
+    [ -f "$WORK_DIR/squashfs/etc/caramos-customized" ] || return 1
+
+    chroot "$WORK_DIR/squashfs" /bin/bash -c "test -f /etc/dconf/db/local && test -f /etc/xdg/autostart/caramos-theme.desktop && test -f /etc/xdg/autostart/plank.desktop && test -d /etc/skel/.config/plank/dock1 && test -d /usr/share/cinnamon/applets/Cinnamenu@json && find /usr/share/cinnamon/applets/Cinnamenu@json -name settings-schema.json -print -quit | grep -q . && test -f /usr/share/plymouth/themes/caramos/caramos.plymouth"
+}
+
 # --- Header ---
 print_header
 
@@ -141,7 +147,13 @@ case "$MODE" in
     quick)
         ensure_work_tree
         step_boot_config
-        step_overlay
+        if ! validate_customized_rootfs; then
+            warn "Work tree chưa customize đầy đủ hoặc marker cũ không hợp lệ. Chạy customize trước khi repack."
+            rm -f "$WORK_DIR/squashfs/etc/caramos-customized" 2>/dev/null || true
+            step_customize
+        else
+            step_overlay
+        fi
         step_repack
         ;;
     *)

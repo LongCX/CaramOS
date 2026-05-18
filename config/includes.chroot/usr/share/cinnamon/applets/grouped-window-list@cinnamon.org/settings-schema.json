@@ -154,11 +154,8 @@
     "type": "generic",
     "default": [
       "google-chrome.desktop",
-      "wps-office-wps.desktop",
-      "wps-office-et.desktop",
-      "wps-office-wpp.desktop",
-      "nemo.desktop",
-      "org.gnome.Terminal.desktop"
+      "wps-office-prometheus.desktop",
+      "cinnamon-settings.desktop"
     ]
   },
   "group-apps": {
