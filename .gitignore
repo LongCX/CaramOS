@@ -16,6 +16,7 @@ packages/caramos-ota/debian/caramos-ota/
 packages/caramos-ota/debian/debhelper-build-stamp
 packages/caramos-ota/debian/files
 packages/caramos-ota/debian/*.substvars
+packages/caramos-ota/debian/*.debhelper
 packages/caramos-ota/debian/*.debhelper.log
 
 # Python cache
