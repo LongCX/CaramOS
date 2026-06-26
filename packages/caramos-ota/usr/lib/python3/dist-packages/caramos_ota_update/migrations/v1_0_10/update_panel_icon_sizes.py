@@ -19,7 +19,6 @@ DCONF_FILES = (
     Path("/etc/dconf/db/local.d/01-caramos-task17-panel"),
 )
 THEME_APPLY = Path("/usr/bin/caramos-theme-apply")
-LIVE_USERS = (("caram", 1000), ("mint", 999))
 
 OLD_DCONF_VALUES = (
     'panel-zone-icon-sizes=\'[{"panelId": 1, "maxSize": 18}]\'',
@@ -89,6 +88,29 @@ def _session_environment(uid: int) -> dict[str, str] | None:
     return env
 
 
+def _live_desktop_users() -> list[tuple[str, int]]:
+    """Discover real desktop users with an active runtime directory."""
+
+    users: list[tuple[str, int]] = []
+    runtime_root = Path("/run/user")
+    if not runtime_root.exists():
+        return users
+
+    for runtime_dir in runtime_root.iterdir():
+        if not runtime_dir.is_dir() or not runtime_dir.name.isdigit():
+            continue
+        uid = int(runtime_dir.name)
+        try:
+            user_info = pwd.getpwuid(uid)
+        except KeyError:
+            continue
+        if uid < 1000 or user_info.pw_dir in ("", "/nonexistent"):
+            continue
+        users.append((user_info.pw_name, uid))
+
+    return users
+
+
 def _run_gsettings(user: str, env: dict[str, str], args: list[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["runuser", "-u", user, "--", "gsettings", *args],
@@ -100,11 +122,6 @@ def _run_gsettings(user: str, env: dict[str, str], args: list[str]) -> subproces
 
 
 def _apply_to_live_user(context: MigrationContext, username: str, uid: int) -> None:
-    try:
-        pwd.getpwnam(username)
-    except KeyError:
-        return
-
     env = _session_environment(uid)
     if env is None:
         return
@@ -137,5 +154,5 @@ def run(context: MigrationContext) -> None:
     _update_dconf_defaults(context)
     _update_theme_apply(context)
 
-    for username, uid in LIVE_USERS:
+    for username, uid in _live_desktop_users():
         _apply_to_live_user(context, username, uid)

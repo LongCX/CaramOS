@@ -13,8 +13,6 @@ FROM_VERSION = "1.0.8"
 TO_VERSION = "1.0.9"
 DESCRIPTION = "Restore stable Fcitx5 Lotus defaults"
 
-LIVE_USERS = (("caram", 1000), ("mint", 999))
-
 SKEL_FCITX_DIR = Path("/etc/skel/.config/fcitx5")
 SKEL_ENV_DIR = Path("/etc/skel/.config/environment.d")
 SKEL_CONFIG = SKEL_FCITX_DIR / "config"
@@ -239,6 +237,19 @@ def _refresh_live_session(context: MigrationContext, user: str, uid: int, home: 
             context.log(f"warning: could not restart Fcitx5 for {user}: {result.stderr.strip()}")
 
 
+def _local_desktop_uids() -> list[int]:
+    """Return real local desktop user IDs, excluding system and service users."""
+
+    uids: list[int] = []
+    for user_info in pwd.getpwall():
+        if user_info.pw_uid < 1000 or user_info.pw_dir in ("", "/nonexistent"):
+            continue
+        home = Path(user_info.pw_dir)
+        if home.exists() and user_info.pw_uid not in uids:
+            uids.append(user_info.pw_uid)
+    return uids
+
+
 def _apply_to_user(context: MigrationContext, uid: int) -> None:
     try:
         user_info = pwd.getpwuid(uid)
@@ -279,7 +290,7 @@ def run(context: MigrationContext) -> None:
         path.unlink(missing_ok=True)
     context.log("removed Fcitx5 experimental helpers")
 
-    for _, uid in LIVE_USERS:
+    for uid in _local_desktop_uids():
         _apply_to_user(context, uid)
 
     context.log("Fcitx was restarted for live sessions when possible; logout/login may still be needed for already-running applications to inherit environment changes")

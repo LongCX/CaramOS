@@ -33,7 +33,7 @@ MINTINSTALL_DESKTOP = Path("/usr/share/applications/mintinstall.desktop")
 GROUPED_WINDOW_LIST_UUID = "grouped-window-list@cinnamon.org"
 
 
-def _session_environment(user: str, uid: int) -> dict[str, str] | None:
+def _session_environment(user: str, uid: int, home: Path) -> dict[str, str] | None:
     runtime_dir = Path(f"/run/user/{uid}")
     if not runtime_dir.exists():
         return None
@@ -41,12 +41,35 @@ def _session_environment(user: str, uid: int) -> dict[str, str] | None:
     env.update(
         {
             "DISPLAY": os.environ.get("DISPLAY", ":0"),
-            "XAUTHORITY": f"/home/{user}/.Xauthority",
+            "XAUTHORITY": str(home / ".Xauthority"),
             "XDG_RUNTIME_DIR": str(runtime_dir),
             "DBUS_SESSION_BUS_ADDRESS": f"unix:path={runtime_dir}/bus",
         }
     )
     return env
+
+
+def _live_desktop_users() -> list[tuple[str, int, Path]]:
+    """Discover real desktop users with an active runtime directory."""
+
+    users: list[tuple[str, int, Path]] = []
+    runtime_root = Path("/run/user")
+    if not runtime_root.exists():
+        return users
+
+    for runtime_dir in runtime_root.iterdir():
+        if not runtime_dir.is_dir() or not runtime_dir.name.isdigit():
+            continue
+        uid = int(runtime_dir.name)
+        try:
+            user_info = pwd.getpwuid(uid)
+        except KeyError:
+            continue
+        if uid < 1000 or user_info.pw_dir in ("", "/nonexistent"):
+            continue
+        users.append((user_info.pw_name, uid, Path(user_info.pw_dir)))
+
+    return users
 
 
 def _run_as_user(user: str, env: dict[str, str], args: list[str]) -> subprocess.CompletedProcess[str]:
@@ -220,15 +243,15 @@ def _write_spice_config(user: str, uid: int, env: dict[str, str], apps: list[str
     shutil.chown(config_dir, user=user, group=user)
 
 
-def _pin_for_live_user(context: MigrationContext, user: str, uid: int, apps: list[str]) -> None:
-    env = _session_environment(user, uid)
+def _pin_for_live_user(context: MigrationContext, user: str, uid: int, home: Path, apps: list[str]) -> None:
+    env = _session_environment(user, uid, home)
     if env is None:
         return
 
     _write_spice_config(user, uid, env, apps)
     context.log(f"updated grouped-window-list pinned apps for live user: {user}")
 
-    desktop_dir = Path(f"/home/{user}/Desktop")
+    desktop_dir = home / "Desktop"
     if _copy_desktop_launcher(desktop_dir):
         shutil.chown(desktop_dir / "mintinstall.desktop", user=user, group=user)
         _run_as_user(user, env, ["gio", "set", str(desktop_dir / "mintinstall.desktop"), "metadata::trusted", "true"])
@@ -255,5 +278,5 @@ def run(context: MigrationContext) -> None:
     else:
         context.log("warning: /usr/share/applications/mintinstall.desktop not found")
 
-    for user, uid in (("caram", 1000), ("mint", 999)):
-        _pin_for_live_user(context, user, uid, apps)
+    for user, uid, home in _live_desktop_users():
+        _pin_for_live_user(context, user, uid, home, apps)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import pwd
 import subprocess
 from pathlib import Path
 
@@ -48,7 +49,7 @@ def _write_panel_defaults() -> None:
     subprocess.run(["dconf", "update"], check=False)
 
 
-def _session_environment(user: str, uid: int) -> dict[str, str] | None:
+def _session_environment(user: str, uid: int, home: Path) -> dict[str, str] | None:
     """Return a minimal environment for talking to the user's desktop session."""
 
     runtime_dir = Path(f"/run/user/{uid}")
@@ -58,12 +59,35 @@ def _session_environment(user: str, uid: int) -> dict[str, str] | None:
     env.update(
         {
             "DISPLAY": os.environ.get("DISPLAY", ":0"),
-            "XAUTHORITY": f"/home/{user}/.Xauthority",
+            "XAUTHORITY": str(home / ".Xauthority"),
             "XDG_RUNTIME_DIR": str(runtime_dir),
             "DBUS_SESSION_BUS_ADDRESS": f"unix:path={runtime_dir}/bus",
         }
     )
     return env
+
+
+def _live_desktop_users() -> list[tuple[str, int, Path]]:
+    """Discover real desktop users with an active runtime directory."""
+
+    users: list[tuple[str, int, Path]] = []
+    runtime_root = Path("/run/user")
+    if not runtime_root.exists():
+        return users
+
+    for runtime_dir in runtime_root.iterdir():
+        if not runtime_dir.is_dir() or not runtime_dir.name.isdigit():
+            continue
+        uid = int(runtime_dir.name)
+        try:
+            user_info = pwd.getpwuid(uid)
+        except KeyError:
+            continue
+        if uid < 1000 or user_info.pw_dir in ("", "/nonexistent"):
+            continue
+        users.append((user_info.pw_name, uid, Path(user_info.pw_dir)))
+
+    return users
 
 
 def _run_as_user(user: str, env: dict[str, str], args: list[str]) -> subprocess.CompletedProcess[str]:
@@ -102,8 +126,8 @@ def _reload_cinnamon(context: MigrationContext, user: str, env: dict[str, str]) 
 def _update_live_user(context: MigrationContext) -> None:
     """Apply the panel layout to the current live user when possible."""
 
-    for user, uid in (("caram", 1000), ("mint", 999)):
-        env = _session_environment(user, uid)
+    for user, uid, home in _live_desktop_users():
+        env = _session_environment(user, uid, home)
         if env is None:
             continue
         result = _run_as_user(
