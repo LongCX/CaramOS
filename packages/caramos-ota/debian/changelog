@@ -1,0 +1,66 @@
+caramos-ota (1.0.10-0caramos1) noble; urgency=medium
+
+  * Apply Cinnamon panel icon size update from PR #62.
+  * Set right-side Cinnamon panel icons to 18px in dconf defaults.
+  * Update caramos-theme-apply so first-boot theme setup uses the same panel icon size.
+  * Preserve user-customized panel icon sizes during OTA migration.
+
+ -- Vietnam Linux Family <developer@vietnamlinuxfamily.net>  Wed, 24 Jun 2026 21:31:00 +0700
+
+caramos-ota (1.0.9-0caramos1) noble; urgency=medium
+
+  * Add stable Fcitx5 Lotus defaults for Vietnamese input.
+  * Keep English and Lotus input methods available in the Fcitx menu.
+  * Use Ctrl+Shift trigger keys with shared input state across applications.
+  * Route Cinnamon Start menu search through Fcitx with CLUTTER_IM_MODULE=fcitx.
+  * Restart Fcitx after applying login defaults so the running session loads them.
+  * Remove earlier experimental Fcitx switcher/state-sync helpers.
+
+ -- Vietnam Linux Family <developer@vietnamlinuxfamily.net>  Thu, 24 Jun 2026 16:03:00 +0700
+
+caramos-ota (1.0.8-0caramos1) noble; urgency=medium
+
+  * Apply Software Manager pinning update from PR #54.
+  * Pin Software Manager to Cinnamon grouped-window-list defaults.
+  * Add Software Manager launcher to the default and live user Desktop.
+
+ -- Vietnam Linux Family <developer@vietnamlinuxfamily.net>  Wed, 17 Jun 2026 16:02:00 +0700
+
+caramos-ota (1.0.7-0caramos1) noble; urgency=medium
+
+  * Apply Cinnamon panel layout update from PR #53.
+  * Add systray, network and sound applets to the right panel defaults.
+  * Remove weather and cornerbar from the default enabled applets.
+  * Add a searchable Start menu launcher for CaramOS Update Center.
+
+ -- Vietnam Linux Family <developer@vietnamlinuxfamily.net>  Wed, 17 Jun 2026 15:12:00 +0700
+
+caramos-ota (1.0.6-0caramos1) noble; urgency=medium
+
+  * Add CaramOS custom Ubiquity slideshow assets from PR #52.
+  * Add OTA migration to install slideshow files on existing systems.
+  * Keep package build dependency metadata compatible with Launchpad builders.
+
+ -- Vietnam Linux Family <developer@vietnamlinuxfamily.net>  Tue, 09 Jun 2026 15:17:00 +0700
+
+caramos-ota (1.0.5.2-0caramos1) noble; urgency=medium
+
+  * Release CaramOS OTA migration chain through CaramOS 1.0.5.
+  * Add migrations for MintWelcome branding, default ZRAM, MintReport branding,
+    and technical codename metadata compatibility.
+  * Aggregate multi-step migration release notes and update size in the notifier.
+  * Fix VERSION_CODENAME/DISTRIB_CODENAME to wilma for add-apt-repository.
+
+ -- Vietnam Linux Family <developer@vietnamlinuxfamily.net>  Mon, 08 Jun 2026 20:35:00 +0700
+
+caramos-ota (1.0.2-0caramos1) noble; urgency=medium
+
+  * Initial CaramOS OTA updater package.
+  * CLI: check, upgrade, status, repair, rollback, dry-run.
+  * Daily update check via systemd timer.
+  * Desktop notifier with GTK3 Vietnamese dialog.
+  * Privilege escalation through pkexec/polkit.
+  * Transaction state tracking and best-effort rollback.
+  * Logging with logrotate support.
+
+ -- Vietnam Linux Family <developer@vietnamlinuxfamily.net>  Mon, 26 May 2026 19:15:00 +0700
