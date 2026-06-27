@@ -30,8 +30,7 @@ Dự án được build theo hướng **ISO remaster**: bung ISO Linux Mint gố
 tuỳ biến rootfs bằng packages/overlay/hooks, rồi đóng gói lại thành ISO CaramOS.
 
 > [!IMPORTANT]
-> **Phiên bản ISO hiện tại:** `1.0.1` — **Open Beta**.  
-> **Bản cập nhật OTA mới nhất:** `1.0.10` qua `caramos-ota`.
+> **Phiên bản hiện tại:** `1.0.11` — **Open Beta**.
 > CaramOS đang mở beta để lấy ý kiến từ cộng đồng. Dự án rất hoan nghênh
 > mọi góp ý, báo lỗi, đề xuất cải tiến giao diện, package, trải nghiệm cài đặt
 > và các ý tưởng giúp CaramOS thân thiện hơn với người dùng Việt Nam.
@@ -155,8 +154,8 @@ Nếu tag không khớp, GitHub Actions sẽ fail trước khi build release.
 ## Cập nhật OTA
 
 CaramOS dùng package `caramos-ota` để cập nhật hệ thống sau khi ISO đã phát hành.
-ISO có thể bắt đầu ở version `1.0.1`, sau đó Update Center/OTA sẽ nâng máy user
-lên version mới hơn như `1.0.10` bằng chuỗi migration đã review.
+ISO được build ra ở version mới nhất trong source tree. Với máy đã cài từ bản cũ,
+Update Center/OTA sẽ nâng hệ thống lên `1.0.11` bằng chuỗi migration đã review.
 
 Flow cập nhật:
 
@@ -280,24 +279,24 @@ Quy trình release `1.0.1`:
 # 1. Bump version trong scripts/config.sh nếu cần
 # CARAMOS_VERSION_MAJOR=1
 # CARAMOS_VERSION_MINOR=0
-# CARAMOS_VERSION_PATCH=1
+# CARAMOS_VERSION_PATCH=11
 
 # 2. Commit và merge vào main
 git add scripts/config.sh
-git commit -m "[release] bump CaramOS to 1.0.1"
+git commit -m "[release] bump CaramOS to 1.0.11"
 git push
 
 # 3. Sau khi merge main
 git checkout main
 git pull origin main
-git tag v1.0.1
-git push origin v1.0.1
+git tag v1.0.11
+git push origin v1.0.11
 ```
 
 GitHub Release sẽ đính kèm:
 
 ```text
-CaramOS-1.0.1-cinnamon-amd64.iso
+CaramOS-1.0.11-cinnamon-amd64.iso
 SHA256SUMS
 ```
 
@@ -312,7 +311,7 @@ Tải ISO từ trang GitHub Releases của dự án sau khi có bản phát hàn
 Linux/macOS:
 
 ```bash
-sudo dd if=CaramOS-1.0.1-cinnamon-amd64.iso of=/dev/sdX bs=4M status=progress oflag=sync
+sudo dd if=CaramOS-1.0.11-cinnamon-amd64.iso of=/dev/sdX bs=4M status=progress oflag=sync
 ```
 
 Hoặc dùng Balena Etcher/Ventoy trên mọi hệ điều hành.

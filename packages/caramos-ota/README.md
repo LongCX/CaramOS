@@ -620,7 +620,7 @@ Thiết kế này đơn giản hơn cho contributor: muốn phát hành OTA mớ
 
 ---
 
-## 13. Quy trình release OTA 1.0.2 → 1.0.5
+## 13. Quy trình release OTA đến 1.0.11
 
 Người release chính: **dungleviet**. Contributor chỉ chuẩn bị migration, test và PR; người upload PPA/release cuối cùng là maintainer.
 
@@ -645,13 +645,13 @@ caramos-ota-notifier
 `caramos-ota` sẽ tự resolve migration chain theo `migration.json` và nâng:
 
 ```text
-1.0.1 → 1.0.2 → 1.0.3 → 1.0.4 → 1.0.5
+1.0.1 → 1.0.2 → 1.0.3 → 1.0.4 → 1.0.5 → 1.0.6 → 1.0.7 → 1.0.8 → 1.0.9 → 1.0.10 → 1.0.11
 ```
 
 ### 13.2 Version hiện tại
 
-- Package cần release qua PPA: `caramos-ota` version `1.0.5-0caramos1`.
-- Latest CaramOS migration target: `1.0.5`.
+- Package cần release qua PPA: `caramos-ota` version `1.0.11-0caramos1`.
+- Latest CaramOS migration target: `1.0.11`.
 - Technical codename phải là Linux Mint codename: `wilma`.
 - Ubuntu codename giữ là `noble`.
 
@@ -704,7 +704,7 @@ sudo apt update
 Kỳ vọng:
 
 ```text
-CaramOS version: 1.0.5
+CaramOS version: 1.0.11
 VERSION_CODENAME=wilma
 UBUNTU_CODENAME=noble
 DISTRIB_CODENAME=wilma
@@ -714,12 +714,12 @@ add-apt-repository không còn báo OS codename 'caram'
 
 ### 13.5 Upload release
 
-Maintainer `dungleviet` bump `debian/changelog` lên `1.0.5-0caramos1`, build source package và upload PPA:
+Maintainer `dungleviet` bump `debian/changelog` lên `1.0.11-0caramos1`, build source package và upload PPA:
 
 ```bash
 cd /home/dungleviet/Documents/CaramOS/packages/caramos-ota
 debuild -S -sa
-dput ppa:vietnamlinuxfamily/caram-os ../caramos-ota_1.0.5-0caramos1_source.changes
+dput ppa:vietnamlinuxfamily/caram-os ../caramos-ota_1.0.11-0caramos1_source.changes
 ```
 
 Sau khi Launchpad publish xong, test từ máy/VM `1.0.1`:
@@ -731,11 +731,11 @@ sudo apt install caramos-ota
 sudo caramos-ota
 ```
 
-`apt-cache policy` phải thấy candidate là `1.0.5-0caramos1` hoặc version mới hơn.
+`apt-cache policy` phải thấy candidate là `1.0.11-0caramos1` hoặc version mới hơn.
 
 ### 13.6 Build ISO sau release OTA
 
-ISO release dùng `CARAMOS_VERSION=1.0.5` cho tên ISO/tag, nhưng rootfs bootstrap từ `CARAMOS_MIGRATION_BASE_VERSION=1.0.1` để chạy đủ chain OTA trong lúc build.
+ISO release dùng `CARAMOS_VERSION=1.0.11` cho tên ISO/tag, nhưng rootfs bootstrap từ `CARAMOS_MIGRATION_BASE_VERSION=1.0.1` để chạy đủ chain OTA trong lúc build.
 
 ```bash
 make build
@@ -746,7 +746,7 @@ make release
 Kỳ vọng ISO output:
 
 ```text
-CaramOS-1.0.5-cinnamon-amd64.iso
+CaramOS-1.0.11-cinnamon-amd64.iso
 ```
 
-Bên trong ISO/rootfs sau bootstrap phải là `1.0.5`, không phải `1.0.1` hay `1.0.3`.
+Bên trong ISO/rootfs sau bootstrap phải là `1.0.11`, không phải `1.0.1` hay version trung gian cũ.

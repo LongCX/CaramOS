@@ -1,3 +1,15 @@
+caramos-ota (1.0.11-0caramos1) noble; urgency=medium
+
+  * Fix OTA migrations for systems using custom usernames.
+  * Discover real desktop users from /run/user and passwd instead of hardcoding
+    the default caram or mint live-session accounts.
+  * Use each user's real home directory when applying Cinnamon, desktop launcher,
+    Fcitx5 and panel icon settings.
+  * Add a 1.0.10 to 1.0.11 migration target so existing 1.0.10 systems receive
+    this OTA fix.
+
+ -- Vietnam Linux Family <developer@vietnamlinuxfamily.net>  Fri, 26 Jun 2026 23:18:00 +0700
+
 caramos-ota (1.0.10-0caramos1) noble; urgency=medium
 
   * Apply Cinnamon panel icon size update from PR #62.

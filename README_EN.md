@@ -26,8 +26,7 @@ is built as an **ISO remaster**: extract the official Linux Mint ISO, customize
 the root filesystem with packages/overlays/hooks, then repack it as CaramOS.
 
 > [!IMPORTANT]
-> **Current ISO version:** `1.0.1` — **Open Beta**.  
-> **Latest OTA update target:** `1.0.10` via `caramos-ota`.
+> **Current version:** `1.0.11` — **Open Beta**.
 > CaramOS is currently in open beta to gather feedback from the community.
 > We warmly welcome suggestions, bug reports, UI/package improvements,
 > installation feedback, and ideas that make CaramOS friendlier for Vietnamese
@@ -77,9 +76,10 @@ modern, and ready for Vietnamese users out of the box.
 
 ### OTA Updates
 
-CaramOS uses the `caramos-ota` package for updates after an ISO has shipped. An
-installed machine can start from ISO version `1.0.1` and later move to a newer
-CaramOS version such as `1.0.10` through an ordered migration chain.
+CaramOS uses the `caramos-ota` package for updates after an ISO has shipped. ISO
+builds are produced from the latest version in the source tree; older installed
+systems can use Update Center/OTA to move to `1.0.11` through an ordered
+migration chain.
 
 ```text
 systemd timer
