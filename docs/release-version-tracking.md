@@ -57,7 +57,12 @@ Các file này có nhiều hướng dẫn release cũ `1.0.5`. Nên sửa dần 
    - docs/landing cần đổi,
    - migration lịch sử không đổi,
    - bootstrap/base version không đổi.
-3. Sau khi bump OTA:
+3. Khi lên version mới, bắt buộc kiểm tra landing page [landing/src/main.jsx](../landing/src/main.jsx):
+   - bump hero badge, SEO title/description, download title/lead,
+   - thêm release note mới vào `releaseNotes` cho cả tiếng Việt và tiếng Anh,
+   - cập nhật `releaseNotesLead` để range kết thúc ở version mới,
+   - chạy `yarn build` trong `landing/` trước khi deploy.
+4. Sau khi bump OTA:
    - cập nhật `debian/changelog`,
    - thêm version vào `migration.json`,
    - thêm `vX_Y_Z/manifest.json`, `__init__.py`, migration `.py`,
