@@ -26,14 +26,26 @@
 
 **CaramOS** là bản phân phối Linux dựa trên **Linux Mint 22.3 Cinnamon**
 (Ubuntu 24.04 LTS), được thiết kế đặc biệt cho **người dùng Việt Nam**.
-Dự án được build theo hướng **ISO remaster**: bung ISO Linux Mint gốc,
-tuỳ biến rootfs bằng packages/overlay/hooks, rồi đóng gói lại thành ISO CaramOS.
+Dự án vẫn build theo hướng **ISO remaster**, nhưng từ giai đoạn `1.0.11`
+trở đi mọi thay đổi sau phát hành được chuẩn hoá qua **CaramOS OTA**.
 
 > [!IMPORTANT]
 > **Phiên bản hiện tại:** `1.0.11` — **Open Beta**.
-> CaramOS đang mở beta để lấy ý kiến từ cộng đồng. Dự án rất hoan nghênh
-> mọi góp ý, báo lỗi, đề xuất cải tiến giao diện, package, trải nghiệm cài đặt
-> và các ý tưởng giúp CaramOS thân thiện hơn với người dùng Việt Nam.
+> CaramOS đã chuyển sang mô hình cập nhật bằng OTA. Nếu bạn đang dùng
+> CaramOS `1.0.1`, hãy cài Trung tâm cập nhật bằng lệnh:
+>
+> ```bash
+> curl -fsSL https://caramos.vietnamlinuxfamily.net/install-caramos-ota.sh | sudo bash
+> ```
+>
+> Sau khi cài xong, mở **Trung tâm cập nhật CaramOS** từ Start Menu để nâng
+> hệ thống lên bản mới nhất.
+
+> [!NOTE]
+> Dành cho developer/contributor: từ bây giờ không code trực tiếp các thay đổi
+> hệ thống vào `config/hooks/live/` nếu thay đổi đó cần đến được máy user đã cài.
+> Hãy viết migration trong `packages/caramos-ota`. Xem hướng dẫn phát triển OTA:
+> [packages/caramos-ota/README.md](packages/caramos-ota/README.md).
 
 Mục tiêu của CaramOS là phổ thông hoá Linux — giúp người dùng Việt chuyển từ
 Windows sang Linux dễ hơn, có sẵn giao diện thân thiện, bộ gõ tiếng Việt,
@@ -72,49 +84,65 @@ thân thiện, hiện đại và sẵn sàng cho người dùng Việt Nam.
 
 ## Công nghệ sử dụng
 
-| Thành phần | Công nghệ / cấu hình hiện tại |
+| Thành phần | Công nghệ / vai trò hiện tại |
 |---|---|
 | **Base ISO** | Linux Mint 22.3 Cinnamon 64-bit |
 | **Ubuntu base** | Ubuntu 24.04 LTS / noble |
-| **Desktop** | Cinnamon |
-| **Display manager** | LightDM theo Linux Mint base |
-| **Build method** | ISO remaster: extract → customize → repack |
-| **Build scripts** | Bash + Makefile |
+| **Desktop** | Cinnamon + LightDM theo Linux Mint base |
+| **Build method** | ISO remaster: extract → customize → OTA bootstrap → repack |
+| **Build scripts** | Bash + Makefile, tách module trong `scripts/` |
+| **OTA model** | `caramos-ota` version migration-driven OTA |
+| **Migration runner** | `caramos-ota-update` chạy migration tuần tự `FROM_VERSION -> TO_VERSION` |
+| **Update Center** | `caramos-ota-notifier` + `pkexec caramos-ota --upgrade --yes` |
+| **Developer workflow** | Thay đổi hệ thống sau release phải vào `packages/caramos-ota` migration |
+| **Legacy hooks** | `config/hooks/live/` chỉ dùng cho bootstrap/build-time nền tảng, không là nơi phát triển feature OTA mới |
+| **Overlay** | `config/includes.chroot/` chứa file nền cần có trong ISO/rootfs |
 | **Compression dev** | SquashFS `lz4` |
 | **Compression release** | SquashFS `xz` |
-| **Theme** | Cinnamon Delight |
-| **Icons** | Tela circle / Cinnamon Delight Icons |
-| **Cursor** | Bibata |
-| **Font** | Be Vietnam Pro |
-| **Input method** | Fcitx5 + Lotus |
-| **Browser** | Google Chrome |
-| **Office** | WPS Office |
-| **Chat** | Zalo AppImage |
+| **Theme / Icon / Cursor** | Cinnamon Delight, Tela Circle/Cinnamon Delight Icons, Bibata |
+| **Font / Input** | Be Vietnam Pro, Fcitx5 + Lotus |
+| **Apps phổ biến** | Google Chrome, WPS Office, Zalo AppImage |
 
 ## Cấu trúc dự án
 
 ```text
 ./
-├── build.sh              # Script build chính
-├── Makefile              # Target build/dev/release/debug
-├── scripts/              # Module build
-│   ├── config.sh         # Version, base ISO, mirror, output ISO
-│   ├── utils.sh          # Log, deps, download ISO, mount helpers
-│   ├── extract.sh        # Mount ISO + rsync + unsquashfs
-│   ├── customize.sh      # Chroot + packages + overlay + hooks
-│   ├── repack.sh         # mksquashfs + xorriso
-│   ├── boot_config.sh    # Boot menu + Plymouth branding
-│   ├── overlay.sh        # Copy config/includes.chroot vào rootfs
-│   ├── chroot_shell.sh   # Debug chroot
-│   └── debug_iso.sh      # Kiểm tra ISO/boot branding
-├── config/
-│   ├── packages.txt      # Packages cài thêm
-│   ├── hooks/live/       # Hook chạy trong chroot theo thứ tự NNNN-*.hook.chroot
-│   └── includes.chroot/  # Overlay copy trực tiếp vào rootfs
-├── assets/               # Logo/banner/source assets
-├── Dockerfile            # Docker builder
-└── docker-compose.yml    # Docker build entrypoint
+├── build.sh                         # Script build chính
+├── Makefile                         # Target build/dev/release/debug
+├── scripts/                         # Module build ISO
+│   ├── config.sh                    # Version ISO, base migration version, mirror, output
+│   ├── utils.sh                     # Log, deps, download ISO, mount helpers
+│   ├── extract.sh                   # Mount ISO + rsync + unsquashfs
+│   ├── customize.sh                 # Chroot + packages + overlay + hooks + OTA bootstrap
+│   ├── ota_bootstrap.sh             # Build caramos-ota .deb và chạy migration vào ISO rootfs
+│   ├── repack.sh                    # mksquashfs + xorriso
+│   ├── boot_config.sh               # Boot menu + Plymouth branding
+│   ├── overlay.sh                   # Copy config/includes.chroot vào rootfs
+│   ├── chroot_shell.sh              # Debug chroot
+│   └── debug_iso.sh                 # Kiểm tra ISO/boot branding
+├── config/                          # Lớp bootstrap ISO/rootfs
+│   ├── packages.txt                 # Packages nền cài thêm khi build ISO
+│   ├── hooks/live/                  # Hook build-time legacy, hạn chế thêm logic mới
+│   └── includes.chroot/             # Overlay copy trực tiếp vào rootfs trước OTA bootstrap
+├── packages/                        # Debian packages do CaramOS duy trì
+│   └── caramos-ota/                 # Trung tâm cập nhật + migration runner + migration data
+│       ├── debian/changelog         # Version package OTA publish qua PPA
+│       ├── usr/bin/                 # caramos-ota, notifier, update runner
+│       └── usr/lib/python3/dist-packages/
+│           └── caramos_ota_update/migrations/
+│               ├── migration.json   # Index version migration
+│               └── vX_Y_Z/          # Migration cho từng release
+├── landing/                         # Landing page caramos.vietnamlinuxfamily.net
+├── docs/                            # Tài liệu vận hành/release tracking
+├── assets/                          # Logo/banner/source assets
+├── Dockerfile                       # Docker builder
+└── docker-compose.yml               # Docker build entrypoint
 ```
+
+> [!IMPORTANT]
+> `config/hooks/live/` không còn là nơi chính để phát triển cập nhật hệ thống.
+> Nếu thay đổi cần áp dụng cho máy người dùng đã cài CaramOS, hãy viết migration
+> trong `packages/caramos-ota/usr/lib/python3/dist-packages/caramos_ota_update/migrations/`.
 
 ## Version & release model
 
@@ -153,9 +181,16 @@ Nếu tag không khớp, GitHub Actions sẽ fail trước khi build release.
 
 ## Cập nhật OTA
 
-CaramOS dùng package `caramos-ota` để cập nhật hệ thống sau khi ISO đã phát hành.
-ISO được build ra ở version mới nhất trong source tree. Với máy đã cài từ bản cũ,
-Update Center/OTA sẽ nâng hệ thống lên `1.0.11` bằng chuỗi migration đã review.
+CaramOS đã chuyển sang mô hình **OTA-first**. ISO mới vẫn được phát hành, nhưng
+máy đã cài từ bản cũ không cần cài lại: user chỉ cần cài `caramos-ota`, sau đó
+Update Center/OTA sẽ nâng hệ thống lên version mới nhất bằng chuỗi migration đã
+review.
+
+User đang ở CaramOS `1.0.1` chạy:
+
+```bash
+curl -fsSL https://caramos.vietnamlinuxfamily.net/install-caramos-ota.sh | sudo bash
+```
 
 Flow cập nhật:
 
@@ -176,12 +211,21 @@ Nguyên tắc chính:
 
 - Timer chỉ check/chuẩn bị state, không tự mở GUI và không tự apply migration.
 - Migration chỉ chạy khi user xác nhận trong desktop session hoặc admin chạy CLI.
-- Logic thay đổi hệ thống nằm trong `packages/caramos-ota`, không nhét vào README.
+- Logic thay đổi hệ thống nằm trong `packages/caramos-ota`, không nhét vào hook.
 - Developer muốn thêm update sau release phải viết OTA migration có version rõ ràng.
+- ISO build cũng dùng chính OTA migration chain để đưa rootfs lên version mới nhất.
 
-Xem chi tiết: [packages/caramos-ota/README.md](packages/caramos-ota/README.md).
+Xem chi tiết hướng dẫn phát triển OTA: [packages/caramos-ota/README.md](packages/caramos-ota/README.md).
 
 ## Build ISO local
+
+Khi build ISO, CaramOS không chỉ copy overlay/hook rồi đóng gói lại. Build flow
+sẽ tự build package `caramos-ota`, cài package này vào rootfs và chạy toàn bộ
+OTA migration chain từ `CARAMOS_MIGRATION_BASE_VERSION` tới version mới nhất
+trước khi repack ISO.
+
+Nói ngắn gọn: **ISO build ra đã là bản mới nhất**, còn OTA là đường nâng cấp cho
+máy user đã cài từ ISO cũ.
 
 Cài dependency build trên Ubuntu/Mint/Debian:
 
@@ -208,6 +252,16 @@ Build từ ISO Mint có sẵn:
 make build ISO=linuxmint-22.3-cinnamon-64bit.iso
 ```
 
+Trong quá trình `customize`, script sẽ chạy:
+
+```text
+extract base ISO
+  → install packages + overlay + build-time hooks
+  → build/install bundled caramos-ota
+  → caramos-ota-update --from "$CARAMOS_MIGRATION_BASE_VERSION" --target latest
+  → repack squashfs + ISO
+```
+
 ## Make targets
 
 | Lệnh | Mục đích |
@@ -230,9 +284,11 @@ make build ISO=linuxmint-22.3-cinnamon-64bit.iso
 | `make docker-release` | Build release trong Docker |
 | `make docker-clean` | Clean build bằng Docker |
 
-## Workflow sửa nhanh
+Sau lần build/prepare đầu tiên:
 
-Sau lần build/prepare đầu tiên, nếu chỉ sửa overlay/hook/theme/app config:
+- Nếu sửa file bootstrap ISO như wallpaper, asset hoặc overlay nền: dùng `make overlay` rồi `make quick`.
+- Nếu sửa package/migration OTA: build/test trong [packages/caramos-ota](packages/caramos-ota/) trước, sau đó chạy `make customize-only` hoặc build lại ISO để OTA bootstrap áp dụng migration vào rootfs.
+- Không thêm feature mới vào hook chỉ để cập nhật máy user đã cài; hãy viết OTA migration.
 
 ```bash
 make customize-only
@@ -325,17 +381,21 @@ Hoặc dùng Balena Etcher/Ventoy trên mọi hệ điều hành.
 
 ## Đóng góp
 
-Xem [CONTRIBUTING.md](CONTRIBUTING.md) để biết thêm về kiến trúc, quy ước hook,
+Xem [CONTRIBUTING.md](CONTRIBUTING.md) để biết thêm về kiến trúc OTA-first,
 quy trình build/test và hướng dẫn đóng góp.
 
 Quy ước nhanh:
 
 | Task | Vị trí |
 |---|---|
-| Thêm package | `config/packages.txt` |
-| Tạo hook mới | `config/hooks/live/NNNN-name.hook.chroot` |
-| Sửa overlay hệ thống | `config/includes.chroot/` |
-| Sửa version | `scripts/config.sh` |
+| Cập nhật máy user đã cài | `packages/caramos-ota/usr/lib/python3/dist-packages/caramos_ota_update/migrations/` |
+| Phát triển/troubleshoot OTA | `packages/caramos-ota/` |
+| Thêm package nền cho ISO mới | `config/packages.txt` |
+| Sửa overlay nền của ISO | `config/includes.chroot/` |
+| Hook build-time bắt buộc | `config/hooks/live/` — hạn chế, không dùng thay OTA migration |
+| Sửa version ISO | `scripts/config.sh` |
+| Theo dõi chỗ cần bump version | `docs/release-version-tracking.md` |
+| Sửa landing page | `landing/src/main.jsx` |
 | Sửa workflow release | `.github/workflows/build.yml` |
 
 ## Contributors

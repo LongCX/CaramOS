@@ -1,6 +1,7 @@
 # Contributing Guide — CaramOS
 
-Thank you for your interest in CaramOS! This document describes the project architecture, how to build the ISO, development workflow, and how to contribute.
+Thank you for your interest in CaramOS! This document describes how to contribute
+under the project's current **OTA-first** model.
 
 > [Tiếng Việt](CONTRIBUTING.md) · [README](README_EN.md)
 
@@ -8,191 +9,198 @@ Thank you for your interest in CaramOS! This document describes the project arch
 
 ## Table of Contents
 
-- [Project Architecture](#project-architecture)
+- [Current Status](#current-status)
+- [OTA-first Architecture](#ota-first-architecture)
+- [Project Structure](#project-structure)
 - [Build ISO](#build-iso)
-- [How to Contribute](#how-to-contribute)
-- [Development Workflow](#development-workflow)
+- [Developing with OTA](#developing-with-ota)
+- [Contribution Workflow](#contribution-workflow)
 - [Code Standards](#code-standards)
-- [Bug Reports & Feature Requests](#bug-reports--feature-requests)
+- [Bug Reports and Feature Requests](#bug-reports-and-feature-requests)
 
 ---
 
-## Project Architecture
+## Current Status
 
-CaramOS = **Linux Mint** + **CaramOS customization**.
+CaramOS has moved to the **CaramOS OTA** update model.
 
-Built by **remastering the official Mint ISO**: extract → chroot → customize → repack.
+- New ISO images are still built and released.
+- Machines installed with CaramOS `1.0.1` do not need to reinstall the ISO.
+- Users install CaramOS Update Center, then upgrade through OTA.
 
-```
-Linux Mint ISO (Cinnamon 22)
-     ↓ extract + chroot
-+ Install extra packages  (config/packages.txt)
-+ Copy overlay files      (config/includes.chroot/)
-+ Run hooks               (config/hooks/live/)
-     ↓ mksquashfs + xorriso
-= CaramOS ISO
+Command for users currently on CaramOS `1.0.1`:
+
+```bash
+curl -fsSL https://caramos.vietnamlinuxfamily.net/install-caramos-ota.sh | sudo bash
 ```
 
-### Directory Structure
+After installation, users should open **CaramOS Update Center** from the Start
+Menu to check and upgrade to the latest version.
 
+> [!IMPORTANT]
+> Contributors/developers should not add new system updates directly to
+> `config/hooks/live/`. If a change must apply to already-installed CaramOS
+> machines, write an OTA migration in `packages/caramos-ota`.
+
+---
+
+## OTA-first Architecture
+
+CaramOS still uses ISO remastering, but ISO builds now include an OTA bootstrap
+step:
+
+```text
+Linux Mint ISO
+  → extract rootfs
+  → install packages + overlay + build-time hooks
+  → build/install bundled caramos-ota
+  → run caramos-ota-update migrations inside rootfs
+  → repack squashfs + CaramOS ISO
 ```
+
+Key points:
+
+- `scripts/config.sh` stores ISO version and base migration version.
+- `CARAMOS_MIGRATION_BASE_VERSION="1.0.1"` is kept so ISO builds run the full
+  migration chain from the first Open Beta release to latest.
+- `scripts/ota_bootstrap.sh` builds the `caramos-ota` package, installs it into
+  the rootfs, and runs migrations before repacking the ISO.
+- The resulting ISO is already at the latest state in the source tree.
+- OTA is the upgrade path for users already installed from older ISOs.
+
+### Do not code new user-facing updates into hooks
+
+`config/hooks/live/` should only be used for true build-time/bootstrap tasks.
+Examples:
+
+- preparing the rootfs environment before OTA bootstrap runs;
+- actions that only make sense during ISO build;
+- build system fixes, boot branding, or foundational dependencies.
+
+If a change must reach installed user machines — for example panel settings,
+dconf, Fcitx5, desktop launchers, theme, `/etc/caramos-release`, package state —
+write a migration.
+
+---
+
+## Project Structure
+
+```text
 CaramOS/
-├── build.sh                               # Entry point — orchestrates build
-├── Makefile                               # make build / clean
-│
-├── scripts/                               # Build modules
-│   ├── config.sh                          # Version, mirror, output config
-│   ├── utils.sh                           # Logging, root check, auto-install deps
-│   ├── extract.sh                         # Mount ISO + unsquashfs
-│   ├── customize.sh                       # Chroot + packages + overlay + hooks
-│   └── repack.sh                          # mksquashfs + xorriso → ISO
-│
-├── config/
-│   ├── packages.txt                       # Extra packages to install
-│   ├── hooks/live/
-│   │   └── 0100-caramos-setup.hook.chroot # Chrome, theme, icons, cursor, locale
-│   └── includes.chroot/                   # Overlay → / (copied into filesystem)
-│       ├── etc/sddm.conf.d/              # SDDM login screen
-│       ├── etc/skel/.config/              # Default user config
-│       └── usr/share/                     # Dconf, wallpapers, pixmaps
-│
-├── debian/                                # Debian packaging → .deb
-├── README.md, CONTRIBUTING.md, LICENSE
-└── .gitignore
+├── build.sh                         # ISO build entry point
+├── Makefile                         # make build/release/quick/docker-build...
+├── scripts/                         # ISO build modules
+│   ├── config.sh                    # ISO version, migration base, mirror, output
+│   ├── extract.sh                   # Mount ISO + unsquashfs
+│   ├── customize.sh                 # Packages + overlay + hooks + OTA bootstrap
+│   ├── ota_bootstrap.sh             # Build/install OTA package and run migrations
+│   ├── repack.sh                    # mksquashfs + xorriso
+│   ├── boot_config.sh               # Boot menu/Plymouth branding
+│   └── utils.sh                     # Logging, deps, ISO helpers
+├── config/                          # ISO/rootfs bootstrap layer
+│   ├── packages.txt                 # Base packages installed when building ISO
+│   ├── includes.chroot/             # Overlay copied into the rootfs
+│   └── hooks/live/                  # Legacy build-time hooks, avoid adding new logic
+├── packages/
+│   └── caramos-ota/                 # Main OTA system
+│       ├── debian/changelog         # OTA package version uploaded to PPA
+│       ├── usr/bin/
+│       │   ├── caramos-ota          # CLI/orchestrator
+│       │   ├── caramos-ota-notifier # Update Center/notifier
+│       │   └── caramos-ota-update   # Migration runner
+│       └── usr/lib/python3/dist-packages/
+│           ├── caramos_ota/
+│           ├── caramos_ota_notifier/
+│           └── caramos_ota_update/migrations/
+│               ├── migration.json
+│               └── vX_Y_Z/
+│                   ├── manifest.json
+│                   ├── __init__.py
+│                   └── *.py
+├── landing/                         # Website/landing page
+├── docs/                            # Operations/release tracking docs
+├── assets/                          # Logo, banner, screenshots
+└── .github/workflows/               # CI/release workflow
 ```
 
-### Build Flow — What Each Script Does
+Detailed OTA docs:
 
-| Script | What it does |
-|---|---|
-| `build.sh` | Entry point — calls scripts below |
-| `scripts/config.sh` | Config: Mint version, mirror, ISO output name |
-| `scripts/utils.sh` | Colored logging, root check, auto-install deps, find/download ISO |
-| `scripts/extract.sh` | Mount ISO → rsync → unsquashfs filesystem |
-| `scripts/customize.sh` | Chroot → install packages.txt → copy overlay → run hooks → cleanup |
-| `scripts/repack.sh` | mksquashfs → xorriso → bootable ISO (UEFI + Legacy) |
+- [packages/README.md](packages/README.md)
+- [packages/caramos-ota/README.md](packages/caramos-ota/README.md)
 
 ---
 
 ## Build ISO
 
-### Requirements
+### Local build
 
-#### Option 1: Native Machine (Ubuntu/Mint only)
-- Machine running **Ubuntu 22.04+** or **Linux Mint 21+**
-- About **15 GB** free disk space
-- Internet connection
+Requirements: a compatible Ubuntu/Mint/Debian machine, `sudo`, and enough free
+space for rootfs and ISO artifacts.
 
-#### Option 2: Via Docker (Any OS like macOS, Windows, Arch...)
-- **Docker** and **docker compose** plugin installed
-- No other dependencies required
-
-### Build procedure
-
-Clone the repository:
 ```bash
-git clone https://github.com/VN-Linux-Family/CaramOS.git
-cd CaramOS
+sudo apt update
+sudo apt install squashfs-tools xorriso rsync wget curl isolinux syslinux-common syslinux-utils
 ```
 
-#### Local Build (Ubuntu/Mint)
+Fast dev build:
 
 ```bash
-# 1. Install tools (first time only)
-sudo apt install squashfs-tools xorriso rsync wget curl isolinux
-
-# 2. Fast Dev build (lz4 compression, ISO ~3.5GB)
 make build
+```
 
-# OR Small Release build (xz compression, ISO ~2.5GB)
+Smaller release build:
+
+```bash
 make release
 ```
 
-#### Docker Build (Any OS)
+Build from an existing Mint ISO:
 
 ```bash
-# The first run will automatically build the container image
-make docker-build       # Build Dev mode (lz4)
-make docker-release     # Build Release mode (xz)
+make build ISO=linuxmint-22.3-cinnamon-64bit.iso
 ```
 
-Wait **1-10 minutes** (depending on lz4/xz) → `CaramOS-X.X-cinnamon-amd64.iso` is created.
+During the build, `customize.sh` calls OTA bootstrap. Therefore, if you change
+`packages/caramos-ota`, rebuilding the ISO will embed the new OTA package and run
+migrations into the rootfs before packaging.
 
-### Write to USB
+### Docker build
+
+Use Docker when the host is not a compatible Ubuntu/Mint/Debian system:
 
 ```bash
-sudo dd if=CaramOS-*.iso of=/dev/sdX bs=4M status=progress
+make docker-build
+make docker-release
 ```
 
-### Test in VM
+### Fast iteration workflow
 
-```bash
-qemu-system-x86_64 -m 4G -cdrom CaramOS-*.iso -boot d -enable-kvm
-```
-
-### Clean up
-
-```bash
-sudo ./build.sh --clean
-```
+| Change type | Recommended command |
+|---|---|
+| Base ISO overlay/assets | `make overlay && make quick` |
+| Boot menu/Plymouth | `make boot-only && make iso-only` |
+| OTA migration/package | test in `packages/caramos-ota`, then `make customize-only` or `make build` |
+| Release version | update `scripts/config.sh`, docs/landing according to `docs/release-version-tracking.md` |
 
 ---
 
-## How to Contribute
-
-| Role | Tasks | Requirements |
-|---|---|---|
-| **Tester** | Test ISO/OTA on different hardware | A computer or VM to test on |
-| **Designer** | Wallpapers, icons, themes | Graphic design skills |
-| **Developer** | Scripts, hooks, configs, Debian packages, OTA migrations | Basic Bash/Python |
-| **Writer** | Documentation, translations | Good Vietnamese/English writing |
-
-### Contribution Workflow
-
-1. **Fork** → **Clone** → **Branch** → **Commit** → **Push** → **Pull Request**
-
-### Pull Request Rules
-
-- 1 PR = 1 feature or 1 bug fix
-- Clearly describe what and why
-- Test before creating PR
-
----
-
-## Development Workflow
-
-### Branch Strategy
-
-```
-main            ← Stable, release ISOs
-├── develop     ← Main development
-├── feature/*   ← New features
-├── fix/*       ← Bug fixes
-└── release/*   ← Release preparation
-```
-
----
-
-## Writing OTA Migrations
-
-After an ISO has shipped, system changes should not require users to download a
-new ISO. Developers should add a migration to the `caramos-ota` package so the
-Update Center can move installed machines forward by version.
+## Developing with OTA
 
 ### When do you need a migration?
 
 Create an OTA migration when a change affects already-installed CaramOS systems,
 for example:
 
-- branding, desktop defaults, dconf, panel, icon or theme updates;
+- Cinnamon panel/dconf/default app launcher changes;
+- Fcitx5/Lotus, input method, or autostart fixes;
+- branding, theme, icon, or wallpaper updates that should apply to existing users;
 - adding/updating CaramOS-managed packages;
-- changes to `/etc/skel`, `/etc/caramos-release` or system configuration;
+- changes to `/etc/caramos-release`, `/etc/lsb-release`, or `/etc/os-release`;
 - one-time commands that must run on user machines after release.
 
-If the change only affects future ISO builds, update `config/includes.chroot/`,
-`config/hooks/live/` or `config/packages.txt` instead.
+Do not use hooks as a replacement for migrations in these cases.
 
-### File locations
+### Files to add/update for an OTA version
 
 ```text
 packages/caramos-ota/
@@ -202,94 +210,152 @@ packages/caramos-ota/
     └── vX_Y_Z/
         ├── manifest.json
         ├── __init__.py
-        └── *.py
+        └── migration_file.py
 ```
 
 A migration version must include:
 
-- a version entry in `migration.json`;
-- a matching `vX_Y_Z/` directory;
+- a new version entry in `migration.json`;
+- the matching `vX_Y_Z/` directory;
 - `manifest.json` with UI title/summary/changelog metadata;
 - code declaring `FROM_VERSION`, `TO_VERSION`, and `DESCRIPTION`;
 - a `run(context)` function that applies the change.
 
-### Safety rules
+### Migration rules
 
 - Each migration should upgrade exactly one adjacent version step.
 - Migrations must be idempotent or include explicit rerun guards.
 - Do not download or execute scripts from the internet inside migrations.
 - Do not download `.deb` files manually; use the configured APT/PPA path.
-- Do not add PPAs/keyrings from OTA; those must come from the ISO or reviewed packages.
+- Do not hardcode users such as `caram` or `mint`; detect the real desktop user.
+- Do not add PPAs/keyrings in a migration unless they have been reviewed in the
+  package/ISO layer.
 - Log each important action with `context.log(...)`.
 - `dry-run` must not mutate the system.
-- If a migration calls GUI/user-session processes such as `systemctl --user`,
-  `gsettings` or `fcitx5`, use short timeouts and fallbacks so Update Center
-  cannot hang forever.
+- User-session commands such as `systemctl --user`, `gsettings`, or `fcitx5`
+  must use short timeouts and fallbacks.
 - If a service/desktop component restart is needed, prefer best-effort refresh
   and tell users to logout/login when required.
 
-### Required tests before PR
+### OTA tests before PR
+
+Inside the OTA package:
 
 ```bash
 cd packages/caramos-ota
 make compile
+make validate
 make build
-make ship
 ```
 
-Inside the VM:
+If VM testing is available:
 
 ```bash
-cd /tmp/caramos-ota-e2e
-make test
-make test-notifier
+make ship
+make vm-test-cli
+make vm-test-notifier
 ```
 
 PR checklist:
 
 - [ ] New migration has a clear version path.
 - [ ] `migration.json` and `manifest.json` are valid.
-- [ ] `make compile` and `make build` pass.
-- [ ] Upgrade from an older version was tested in a VM snapshot.
+- [ ] `make compile`, `make validate`, and `make build` pass.
+- [ ] Upgrade from an older version was tested in a VM snapshot if possible.
 - [ ] Update Center does not hang when a migration fails or a command times out.
 - [ ] Logs in `/var/log/caramos-ota/` are sufficient for debugging.
+- [ ] README/landing/release notes are updated if this is a new release.
 
-See [packages/caramos-ota/README.md](packages/caramos-ota/README.md) for the full
-OTA architecture.
+---
+
+## Contribution Workflow
+
+1. Fork the repository.
+2. Create a branch from `develop` or the branch specified by maintainers.
+3. Make focused, well-scoped changes.
+4. Test according to the change type.
+5. Commit with a clear prefixed message.
+6. Open a Pull Request and describe:
+   - what changed;
+   - why it is needed;
+   - how it was tested;
+   - whether it requires an OTA migration.
+
+### Contribution roles
+
+| Role | Work |
+|---|---|
+| Tester | Test ISO/OTA on real hardware or VMs, report issues with logs/screenshots |
+| Developer | Write migrations, OTA package changes, build scripts, bug fixes |
+| Designer | Wallpapers, icons, banners, branding assets |
+| Writer | README, user guides, changelog, translations |
+
+### Branches and releases
+
+```text
+main       # stable/release branch
+feat/*     # new features
+fix/*      # bug fixes
+docs/*     # documentation
+release/*  # release preparation
+```
+
+When bumping a release version, follow the checklist in
+[docs/release-version-tracking.md](docs/release-version-tracking.md).
 
 ---
 
 ## Code Standards
 
-### Commit Messages — [Conventional Commits](https://www.conventionalcommits.org/)
+### Commit messages
 
+The project prefers short, easy-to-scan prefixes:
+
+```text
+[build] build scripts / Docker / CI
+[config] package list, overlay, system config
+[assets] logo, wallpaper, screenshot
+[docs] README, guide, changelog
+[ota] caramos-ota, migration, notifier, updater
+[release] version bump/tag/release metadata
 ```
-feat:     new feature
-fix:      bug fix
-docs:     documentation
-chore:    build, config
-brand:    wallpaper, logo, theme
-```
 
-### Bash (hook scripts)
+### Bash
 
-```bash
-#!/bin/bash
-set -e
+- Use `set -e` or explicit error handling.
+- Log what each block is doing.
+- Do not download/run uncontrolled scripts.
+- Scripts in `scripts/` should provide `--help` when runnable independently.
 
-echo "[CaramOS] Installing..."
-apt-get install -y package-name
-```
+### Python migrations
+
+- Prefer the standard library; avoid adding dependencies unless necessary.
+- Do not hardcode usernames or home paths.
+- Check that files exist before editing/removing them.
+- Backup or log risky changes clearly.
+- Respect `dry-run` when the context supports it.
 
 ---
 
-## Bug Reports & Feature Requests
+## Bug Reports and Feature Requests
 
-Create an [Issue on GitHub](https://github.com/VN-Linux-Family/CaramOS/issues):
+Create an issue at: <https://github.com/VN-Linux-Family/CaramOS/issues>
 
-**Bug report:** Description → Steps to reproduce → Expected result → System info
+Bug reports should include:
 
-**Feature request:** Description → Reason → Proposed solution
+- current CaramOS version;
+- whether you are using ISO or OTA;
+- steps to reproduce;
+- expected result;
+- relevant logs, especially `/var/log/caramos-ota/` for update issues;
+- screenshots/videos for UI issues.
+
+Feature requests should include:
+
+- a short description;
+- why the feature is needed;
+- whether it affects installed users or only new ISOs;
+- if it affects installed users, a proposed OTA migration approach.
 
 ---
 
